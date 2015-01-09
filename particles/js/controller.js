@@ -45,6 +45,12 @@ function Controller(particles) {
             break;
         }
     });
+
+    $(window).on('resize', function(event) {
+        $(canvas).height = window.innerHeight;
+        $(canvas).width  = window.innerWidth;
+    });
+
     this.controls = {
         increase: $('.controls .increase').on('click', function() {
             _this.adjust(2);

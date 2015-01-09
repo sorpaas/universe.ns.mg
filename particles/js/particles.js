@@ -35,6 +35,7 @@ function Particles(canvas, nparticles, size) {
     this.wind = [0, 0];
     this.restitution = 0.25;
     this.obstacles = [];
+    this.windowcenter = [window.innerWidth / 2, window.innerHeight / 2];
 
     function texture() {
         return igloo.texture(null, gl.RGBA, gl.CLAMP_TO_EDGE, gl.NEAREST);
@@ -284,7 +285,7 @@ Particles.prototype.step = function() {
         .uniform('wind', this.wind)
         .uniform('restitution', this.restitution)
         .uniform('worldsize', this.worldsize)
-        .uniform('center', [window.innerWidth / 2, window.innerHeight / 2])
+        .uniform('center', this.windowcenter)
         .uniformi('derivative', 0)
         .draw(gl.TRIANGLE_STRIP, Igloo.QUAD2.length / 2);
     this.framebuffers.step.attach(this.textures.v1);
