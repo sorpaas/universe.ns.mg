@@ -1,0 +1,17 @@
+{
+    "main": "./js/main.js",
+    "browser": {
+        "jquery": "./js/vendor/jquery-1.11.2.js",
+        "three": "./js/vendor/three.js"
+    },
+    "browserify-shim": {
+        "./js/vendor/jquery-1.11.2.js": "$",
+        "./js/vendor/three.js": "global:THREE"
+    },
+    "browserify": {
+        "transform": [ "browserify-shim" ]
+    },
+    "dependencies": {
+        "browserify-shim": "~3.2.0"
+    }
+}
