@@ -43,7 +43,7 @@ void updatePosition(inout vec2 p, inout vec2 v, vec2 obstacle) {
 }
 
 void updateVelocity(inout vec2 p, inout vec2 v, vec2 obstacle) {
-  v += normalize(-p + center) / distance(p, center);
+  v += normalize(-p + center) / distance(p, center) * 10.0;
   // if (p.y + v.y < -1.0) {
   //   /* Left the world, reset particle. */
   //   v.x = v.x + random / 2.0 + (index.x - 0.5) * sign(random);
