@@ -18,7 +18,7 @@ function init() {
     var height = window.innerHeight;
 
     camera = new THREE.PerspectiveCamera( 60, width / height, 1, 2100 );
-    camera.position.z = 1500;
+    camera.position.z = 750;
 
     cameraOrtho = new THREE.OrthographicCamera( - width / 2, width / 2, height / 2, - height / 2, 1, 10 );
     cameraOrtho.position.z = 10;
@@ -45,7 +45,7 @@ function init() {
 
 	var x = Math.random() - 0.5;
 	var y = Math.random() - 0.5;
-	var z = Math.random() - 0.5;
+	var z = 0;//Math.random() - 0.5;
 
 	if ( z < 0 ) {
 
@@ -63,7 +63,7 @@ function init() {
 	var sprite = new THREE.Sprite( material );
 
 	sprite.position.set( x, y, z );
-	sprite.position.normalize();
+	// sprite.position.normalize();
 	sprite.position.multiplyScalar( radius );
 
 	group.add( sprite );
@@ -100,8 +100,6 @@ function onWindowResize() {
     cameraOrtho.bottom = - height / 2;
     cameraOrtho.updateProjectionMatrix();
 
-    updateHUDSprites();
-
     renderer.setSize( window.innerWidth, window.innerHeight );
 
 }
@@ -121,7 +119,7 @@ function render() {
 
 	var sprite = group.children[ i ];
 	var material = sprite.material;
-	var scale = Math.sin( time + sprite.position.x * 0.01 ) * 0.3 + 1.0;
+	var scale =  0.3 + 1.0;
 
 	var imageWidth = 1;
 	var imageHeight = 1;
@@ -138,7 +136,7 @@ function render() {
 
 	if ( material.map !== mapC ) {
 
-	    material.opacity = Math.sin( time + sprite.position.x * 0.01 ) * 0.4 + 0.6;
+	    //material.opacity = Math.sin( time + sprite.position.x * 0.01 ) * 0.4 + 0.6;
 
 	}
 
