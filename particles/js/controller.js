@@ -12,36 +12,42 @@ function Controller(particles) {
 
     var _this = this,
         canvas = particles.igloo.gl.canvas;
-    // $(canvas).on('mousemove', function(event) {
-    //     var coords = Controller.coords(event);
-    //     _this.obstacle.position[0] = coords[0];
-    //     _this.obstacle.position[1] = coords[1];
-    //     _this.obstacle.enabled = true;
-    //     particles.updateObstacles();
-    //     if (_this.mousedown) _this.place();
-    // });
-    // $(canvas).on('mouseout', function() {
-    //     _this.obstacle.enabled = false;
-    //     particles.updateObstacles();
-    //     _this.mousedown = false;
-    // });
-    // $(canvas).on('mousedown', function() {
-    //     _this.mousedown = true;
-    // });
-    // $(canvas).on('mouseup', function(event) {
-    //     if (event.which === 1) _this.place();
-    //     _this.mousedown = false;
-    // });
+    $(canvas).on('mousemove', function(event) {
+        var coords = Controller.coords(event);
+        _this.obstacle.position[0] = coords[0];
+        _this.obstacle.position[1] = coords[1];
+        _this.obstacle.enabled = true;
+        particles.updateObstacles();
+        if (_this.mousedown) _this.place();
+    });
+    $(canvas).on('mouseout', function() {
+        _this.obstacle.enabled = false;
+        particles.updateObstacles();
+        _this.mousedown = false;
+    });
+    $(canvas).on('mousedown', function() {
+        _this.mousedown = true;
+    });
+    $(canvas).on('mouseup', function(event) {
+        if (event.which === 1) _this.place();
+        _this.mousedown = false;
+    });
     $(window).on('keyup', function(event) {
         switch (event.which) {
         case 67: // c
-            _this.clear();
+            //_this.clear();
+            particles.debug = null;
             break;
         case 68: // d
-            _this.adjust(2);
+            //_this.adjust(2);
+            particles.debug = function() {
+                particles.updateGravity(particles.igloo.defaultFramebuffer);
+            }
             break;
-        case 72: // h
-            _this.adjust(0.5);
+        case 32: // space
+            particles.debug = function() {
+                particles.updateObstacles(particles.igloo.defaultFramebuffer);
+            }
             break;
         }
     });
@@ -103,7 +109,7 @@ function Controller(particles) {
  * @returns {Controller} this
  */
 Controller.prototype.init = function() {
-    this.obstacle = this.particles.addObstacle([0, 0], 20);
+    this.obstacle = this.particles.addObstacle([0, 0], 16);
     this.obstacle.enabled = false;
     this.particles.updateObstacles();
     return this;

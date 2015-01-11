@@ -24,7 +24,7 @@ $(document).ready(function() {
     var canvas = $('#display')[0];
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
-    particles = new Particles(canvas, 1024 * 16, 5).draw().start();
+    particles = new Particles(canvas, 1024 * 32, 5).draw().start();
     controller = new Controller(particles);
     new FPS(particles);
     updateCount();

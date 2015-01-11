@@ -5,10 +5,11 @@ precision mediump float;
 uniform sampler2D position;
 uniform sampler2D velocity;
 uniform sampler2D obstacles;
+uniform sampler2D gravity;
 uniform int derivative;
 uniform vec2 scale;
+uniform float gravityScale;
 uniform float random;
-uniform vec2 gravity;
 uniform vec2 wind;
 uniform float restitution;
 uniform vec2 worldsize;
@@ -42,8 +43,8 @@ void updatePosition(inout vec2 p, inout vec2 v, vec2 obstacle) {
     }
 }
 
-void updateVelocity(inout vec2 p, inout vec2 v, vec2 obstacle) {
-  v += normalize(-p + center) / distance(p, center) * 10.0;
+void updateVelocity(inout vec2 p, inout vec2 v, vec2 obstacle, vec2 gravity) {
+  v -= gravity;
   // if (p.y + v.y < -1.0) {
   //   /* Left the world, reset particle. */
   //   v.x = v.x + random / 2.0 + (index.x - 0.5) * sign(random);
@@ -64,16 +65,18 @@ void main() {
     vec2 p = vec2(decode(psample.rg, scale.x), decode(psample.ba, scale.x));
     vec2 v = vec2(decode(vsample.rg, scale.y), decode(vsample.ba, scale.y));
     vec2 obstacle = (texture2D(obstacles, p / worldsize).xy - 0.5) * 2.0;
+    vec4 gsample = texture2D(gravity, p / worldsize);
+    vec2 g = vec2(decode(gsample.rg, gravityScale), decode(gsample.ba, gravityScale));
     vec2 result;
     float s;
     if (derivative == 0) {
-        updatePosition(p, v, obstacle);
-        result = p;
-        s = scale.x;
+      updatePosition(p, v, obstacle);
+      result = p;
+      s = scale.x;
     } else {
-        updateVelocity(p, v, obstacle);
-        result = v;
-        s = scale.y;
+      updateVelocity(p, v, obstacle, g);
+      result = v;
+      s = scale.y;
     }
     gl_FragColor = vec4(encode(result.x, s), encode(result.y, s));
 }

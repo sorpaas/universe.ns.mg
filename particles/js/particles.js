@@ -14,6 +14,7 @@ function Particles(canvas, nparticles, size) {
     this.worldsize = new Float32Array([w, h]);
     var scale = Math.floor(Math.pow(Particles.BASE, 2) / Math.max(w, h) / 3);
     this.scale = [scale, scale * 100];
+    this.gravityScale = scale * 2000;
     this.listeners = [];
 
     /* Vertex shader texture access not guaranteed on OpenGL ES 2.0. */
@@ -26,14 +27,14 @@ function Particles(canvas, nparticles, size) {
 
     /* Drawing parameters. */
     this.size = size || 5;
-    this.color = [0.14, 0.62, 1, 0.6];
+    this.color = [0.45, 0.35, 0.25, 0.6];
     this.obstacleColor = [0.45, 0.35, 0.25, 1.0];
 
     /* Simulation parameters. */
     this.running = false;
     this.gravity = [0, -0.005];
     this.wind = [0, 0];
-    this.restitution = 0.25;
+    this.restitution = 0;
     this.obstacles = [];
     this.windowcenter = [window.innerWidth / 2, window.innerHeight / 2];
 
@@ -45,7 +46,8 @@ function Particles(canvas, nparticles, size) {
         update:  igloo.program('glsl/quad.vert', 'glsl/update.frag'),
         draw:    igloo.program('glsl/draw.vert', 'glsl/draw.frag'),
         flat:    igloo.program('glsl/quad.vert', 'glsl/flat.frag'),
-        ocircle: igloo.program('glsl/ocircle.vert', 'glsl/ocircle.frag')
+        ocircle: igloo.program('glsl/ocircle.vert', 'glsl/ocircle.frag'),
+        gravity: igloo.program('glsl/gravity.vert', 'glsl/gravity.frag')
     };
     this.buffers = {
         quad: igloo.array(Igloo.QUAD2),
@@ -57,15 +59,18 @@ function Particles(canvas, nparticles, size) {
         p1: texture(),
         v0: texture(),
         v1: texture(),
-        obstacles: igloo.texture().blank(w, h)
+        obstacles: igloo.texture().blank(w, h),
+        g0: igloo.texture().blank(w, h),
+        g1: igloo.texture().blank(w, h)
     };
     this.framebuffers = {
         step: igloo.framebuffer(),
-        obstacles: igloo.framebuffer().attach(this.textures.obstacles)
+        obstacles: igloo.framebuffer().attach(this.textures.obstacles),
+        gravity: igloo.framebuffer()
     };
 
     this.setCount(nparticles, true);
-    this.addObstacle([w / 2, h / 2], 32);
+    this.addObstacle([w / 2, h / 2], 16);
 }
 
 /**
@@ -116,8 +121,8 @@ Particles.prototype.initTextures = function() {
             var i = y * tw * 4 + x * 4,
                 px = Particles.encode(Math.random() * w, s[0]),
                 py = Particles.encode(Math.random() * h, s[0]),
-                vx = Particles.encode(Math.random() * 1.0 - 0.5, s[1]),
-                vy = Particles.encode(Math.random() * 2.5, s[1]);
+                vx = Particles.encode((Math.random() * 1.0 - 0.5), s[1]),
+                vy = Particles.encode((Math.random() * 1.0 - 0.5), s[1]);
             rgbaP[i + 0] = px[0];
             rgbaP[i + 1] = px[1];
             rgbaP[i + 2] = py[0];
@@ -212,13 +217,21 @@ Particles.prototype.swap = function() {
     return this;
 };
 
+Particles.prototype.swapGravity = function() {
+    var tmp = this.textures.g0;
+    this.textures.g0 = this.textures.g1;
+    this.textures.g1 = tmp;
+    return this;
+}
+
 /**
  * Brings the obstacles texture up to date.
  * @returns {Particles} this
  */
-Particles.prototype.updateObstacles = function() {
+Particles.prototype.updateObstacles = function(framebuffer) {
+    framebuffer = typeof framebuffer !== 'undefined' ? framebuffer: this.framebuffers.obstacles;
     var gl = this.igloo.gl;
-    this.framebuffers.obstacles.bind();
+    framebuffer.bind();
     gl.disable(gl.BLEND);
     gl.viewport(0, 0, this.worldsize[0], this.worldsize[1]);
     gl.clearColor(0.5, 0.5, 0, 1);
@@ -234,8 +247,35 @@ Particles.prototype.updateObstacles = function() {
                 .draw(obstacle.mode, obstacle.length);
         }
     }
+
+    this.updateGravity();
     return this;
 };
+
+Particles.prototype.updateGravity = function(framebuffer) {
+    framebuffer = typeof framebuffer !== 'undefined' ? framebuffer: this.framebuffers.gravity;
+    var gl = this.igloo.gl;
+    framebuffer.bind();
+    gl.disable(gl.BLEND);
+    gl.viewport(0, 0, this.worldsize[0], this.worldsize[1]);
+    for (var i = 0; i < this.obstacles.length; i++) {
+        var obstacle = this.obstacles[i];
+        if (obstacle.enabled) {
+            framebuffer.attach(this.textures.g1);
+            this.textures.g0.bind(0);
+            this.programs.gravity.use()
+                .attrib('quad', this.buffers.quad, 2)
+                .uniformi('previousGravity', 0)
+                .uniformi('index', i)
+                .uniform('position', new Float32Array(obstacle.position))
+                .uniform('worldsize', this.worldsize)
+                .uniform('scale', this.gravityScale)
+                .draw(gl.TRIANGLE_STRIP, Igloo.QUAD2.length / 2);
+            this.swapGravity();
+        }
+    }
+    return this;
+}
 
 /**
  * Introduces a new circle obstacle to the simulation. You can
@@ -273,18 +313,20 @@ Particles.prototype.step = function() {
     this.textures.p0.bind(0);
     this.textures.v0.bind(1);
     this.textures.obstacles.bind(2);
+    this.textures.g0.bind(3);
     gl.viewport(0, 0, this.statesize[0], this.statesize[1]);
     this.programs.update.use()
         .attrib('quad', this.buffers.quad, 2)
         .uniformi('position', 0)
         .uniformi('velocity', 1)
         .uniformi('obstacles', 2)
+        .uniformi('gravity', 3)
         .uniform('scale', this.scale)
         .uniform('random', Math.random() * 2.0 - 1.0)
-        .uniform('gravity', this.gravity)
         .uniform('wind', this.wind)
         .uniform('restitution', this.restitution)
         .uniform('worldsize', this.worldsize)
+        .uniform('gravityScale', this.gravityScale)
         .uniform('center', this.windowcenter)
         .uniformi('derivative', 0)
         .draw(gl.TRIANGLE_STRIP, Igloo.QUAD2.length / 2);
@@ -328,6 +370,9 @@ Particles.prototype.draw = function() {
         .uniform('color', this.obstacleColor)
         .uniform('worldsize', this.worldsize)
         .draw(gl.TRIANGLE_STRIP, Igloo.QUAD2.length / 2);
+    if ( this.debug ) {
+        this.debug();
+    }
     return this;
 };
 
