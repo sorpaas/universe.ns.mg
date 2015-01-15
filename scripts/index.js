@@ -91,6 +91,8 @@ window.requestAnimationFrame = (function(){
         }
     }
 
+    window.appendParticle = appendParticle;
+
     // Init
 
     canvas  = document.getElementById('c');
